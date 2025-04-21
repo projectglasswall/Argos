@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Argos Task Comparison (Select Classes)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/slim-select/1.27.1/slimselect.min.css" rel="stylesheet" />
+    <style>
+        /* ... (Keep previous styles for body, header, navbar, content, video, comparison section, columns etc.) ... */
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: url("{{ url_for('static', filename='imgs/fifthphoto.jpg') }}") no-repeat center center fixed; background-size: cover; color: black; }
+        header { text-align: center; padding: 10px; background-color: rgba(255, 255, 255, 0.8); margin-bottom: 10px; }
+        .header-image { max-height: 150px; width: auto; }
+        .navbar { width: 100%; background-color: #000; display: flex; justify-content: center; padding: 15px 0; flex-wrap: wrap; }
+        .navbar a { text-decoration: none; color: #85fff5; padding: 10px 20px; margin: 5px; }
+        .navbar a:hover { background-color: #9c5bd6; color: #fff; }
+        .content { padding: 20px; background-color: rgba(255, 255, 255, 0.9); margin: 20px auto; border-radius: 8px; max-width: 1200px; }
+
+        /* Control visibility */
+        .hidden { display: none !important; }
+
+        /* Styles for new Path Selection Section */
+        #path-selection-section { text-align: center; padding: 30px; background-color: #f0f0f0; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ccc; }
+        #path-selection-section h2 { margin-top: 0; margin-bottom: 20px; }
+        #path-buttons-container { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
+        #path-selection-section button { background: none; border: none; padding: 0; cursor: pointer; transition: transform 0.2s ease; }
+        #path-selection-section button:hover { transform: scale(1.05); }
+        .path-button-image { max-width: 150px; /* Adjust size as needed */ height: auto; border: 2px solid #ccc; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* Styles for Class Selection Section */
+        #class-selection-section { text-align: center; padding: 30px; background-color: #f0f0f0; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ccc; }
+        #class-selection-section label { display: block; margin-bottom: 15px; font-size: 1.2em; font-weight: bold; }
+        #class-selection-section .ss-main { min-width: 300px; max-width: 600px; margin: 0 auto 20px auto; }
+        #confirm-classes-btn { padding: 12px 25px; font-size: 1.1em; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; }
+        #confirm-classes-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Styles for Controls (Start/Stop) */
+        #controls { text-align: center; margin-bottom: 20px; }
+        #controls button { padding: 12px 25px; font-size: 1.1em; margin: 10px; cursor: pointer; border-radius: 5px; border: none; }
+        #startBtn { background-color: #4CAF50; color: white; }
+        #stopBtn { background-color: #f44336; color: white; }
+        #controls button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Other sections */
+        #video-container { text-align: center; margin-bottom: 20px; min-height: 400px; background-color: #eee; border: 1px solid #ccc;}
+        #video { max-width: 95%; max-height: 600px; height: auto; border: 2px solid black; }
+        #status { text-align: center; margin-top: 15px; font-weight: bold; min-height: 1.2em; padding: 10px; background-color: #e9ecef; border-radius: 4px;}
+
+        #comparison-section { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
+        .column { flex: 1; min-width: 350px; background-color: #f8f8f8; padding: 20px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .column h2 { margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 15px; }
+        select, #comparison-section button, input[type="number"] { margin: 10px 0; padding: 8px 12px; border-radius: 4px; border: 1px solid #ccc; }
+        #comparison-section button { background-color: #5c2d91; color: white; cursor: pointer; border: none; }
+        #quantity-inputs label { display: inline-block; min-width: 150px; margin-right: 10px; margin-bottom: 5px;}
+        #quantity-inputs input[type="number"] { width: 70px; }
+        #quantity-inputs br { display: block; margin-bottom: 5px; }
+        #comparisonResult p, #csvData p { margin: 8px 0; padding: 8px; background-color: #e9e9e9; border-radius: 5px; color: #333; border-left: 4px solid #ccc; }
+        #comparisonResult p.correct { border-left-color: #4CAF50; background-color: #e8f5e9;}
+        #comparisonResult p.mismatch { border-left-color: #ff9800; background-color: #fff3e0;}
+        #comparisonResult p.missing { border-left-color: #f44336; background-color: #ffebee;}
+        #comparisonResult ul { list-style-position: inside; padding-left: 10px; margin-top: 5px;}
+
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="#">Meet The Team</a>
+        <a href="#">About Argos</a>
+        <a href="#">Live In Action</a>
+        <a href="#">Behind The Scenes</a>
+    </div>
+
+    <header>
+        <img
+        src="{{ url_for('static', filename='imgs/tellotaskcomparison.png') }}"
+        alt="Tello Task Comparison Header"
+        class="header-image"
+        />
+    </header>
+
+    <div class="content">
+
+        <div id="path-selection-section">
+            <h2>Choose Your Path</h2>
+            <div id="path-buttons-container">
+                <button id="path-left-right-btn">
+                    <img src="{{ url_for('static', filename='imgs/lefttoright.png') }}" alt="Select Left to Right Path" class="path-button-image">
+                    </button>
+                <button id="path-up-down-btn">
+                    <img src="{{ url_for('static', filename='imgs/upanddown.png') }}" alt="Select Up and Down Path" class="path-button-image">
+                    </button>
+            </div>
+            <p style="font-size: 0.9em; color: #555; margin-top: 15px;">Select a scanning pattern to continue.</p>
+        </div>
+
+        <div id="class-selection-section" class="hidden">
+            <label for="class-select">Select Object Classes to Detect:</label>
+            <select id="class-select" multiple></select>
+            <button id="confirm-classes-btn" disabled>Confirm Selections & Proceed</button>
+            <p style="font-size: 0.9em; color: #555; margin-top: 10px;">Select at least one class to enable the button.</p>
+        </div>
+
+        <div id="controls" class="hidden">
+            <button id="startBtn">Start Scan</button>
+            <button id="stopBtn" class="hidden">Stop Scan</button>
+        </div>
+
+        <div id="status">Please choose a scanning path above.</div>
+
+        <div id="video-container" class="hidden">
+            <img id="video" src="" alt="Webcam Feed Loading..." />
+        </div>
+
+        <div id="comparison-section" class="container hidden">
+            <div class="column">
+                <h2>Task Comparison</h2>
+                <p>Scan complete. Select items detected below and enter the quantities you expected to find.</p>
+                <label for="item-select">Items detected during scan:</label>
+                <select id="item-select" name="item" multiple></select> <div id="quantity-inputs"><p>Select items above first.</p></div>
+                <button id="compareBtn" onclick="compareData()">Compare Final Results</button>
+                <div id="comparisonResult"></div>
+            </div>
+            <div class="column">
+                <h2>Detected Items (Final Count)</h2>
+                <div id="csvData"><p>Scan has not been run yet.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/slim-select/1.27.1/slimselect.min.js"></script>
+
+    <script>
+        // --- Global Variables ---
+        let processedData = {};
+        let classSelectSlim; // For initial class selection
+        let comparisonSelectSlim; // For comparison item selection
+        let selectedClassesToDetect = [];
+        let selectedPath = null; // To store the chosen path
+
+        // --- DOM Elements ---
+        const pathSelectionSection = document.getElementById('path-selection-section'); // New
+        const pathLeftRightBtn = document.getElementById('path-left-right-btn'); // New
+        const pathUpDownBtn = document.getElementById('path-up-down-btn');     // New
+
+        const classSelectionSection = document.getElementById('class-selection-section');
+        const classSelectElement = document.getElementById('class-select');
+        const confirmClassesBtn = document.getElementById('confirm-classes-btn');
+        const controlsSection = document.getElementById('controls');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const videoContainer = document.getElementById('video-container');
+        const videoElement = document.getElementById('video');
+        const statusElement = document.getElementById('status');
+        const comparisonSection = document.getElementById('comparison-section');
+        const csvDataElement = document.getElementById("csvData");
+        const comparisonResultElement = document.getElementById("comparisonResult");
+        const itemSelectElement = document.getElementById("item-select");
+        const quantityInputsElement = document.getElementById("quantity-inputs");
+        const compareBtn = document.getElementById('compareBtn');
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Don't populate class selector yet, wait for path selection
+            // Add listeners for the new path buttons
+            pathLeftRightBtn.addEventListener('click', () => handlePathSelection('left-right'));
+            pathUpDownBtn.addEventListener('click', () => handlePathSelection('up-down'));
+            console.log("DEBUG: DOM loaded. Path selection listeners added.");
+        });
+
+        // --- NEW: Path Selection Handler ---
+        function handlePathSelection(path) {
+            selectedPath = path;
+            console.log(`DEBUG: Path selected: ${selectedPath}`);
+
+            // Hide path selection, show class selection
+            pathSelectionSection.classList.add('hidden');
+            classSelectionSection.classList.remove('hidden');
+
+            // Update status
+            statusElement.textContent = `Path '${selectedPath}' chosen. Now select object classes.`;
+
+            // Now populate the class selector
+            populateClassSelector();
+        }
+
+        // --- Class Selection Logic ---
+        function populateClassSelector() {
+            console.log("DEBUG: populateClassSelector called.");
+
+            // --- IMPORTANT ---
+            // Make sure you have the correct image files in static/imgs:
+            // - left-right-path.png
+            // - up-down-path.png
+            // If the filenames are different, update the src attributes in the HTML above.
+
+            // const desiredClasses = ['person', 'tv', 'laptop']; // Using fixed list
+            // Fetch classes from backend or use a predefined list
+            fetch('/get_available_classes') // Example: You might need an endpoint to provide classes
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("DEBUG: Received available classes:", data);
+                    const desiredClasses = ['person', 'laptop', 'tv', 'chair', 'dining table']; // Fallback
+                    // const desiredClasses = data.classes || ['person', 'tv', 'laptop']; // Fallback
+                    if (!desiredClasses || desiredClasses.length === 0) {
+                        console.error("DEBUG: desiredClasses array is empty!");
+                        classSelectionSection.innerHTML = "<p>Error: No classes defined for selection.</p>";
+                        return;
+                    }
+                    if (!classSelectElement) {
+                        console.error("DEBUG: Cannot find element with ID 'class-select'!");
+                        return;
+                    }
+                    console.log("DEBUG: Found classSelectElement:", classSelectElement);
+
+                    classSelectElement.innerHTML = ''; // Clear existing options
+                    console.log("DEBUG: Cleared existing options.");
+
+                    desiredClasses.forEach(className => {
+                        console.log("DEBUG: Adding option:", className);
+                        const option = document.createElement('option');
+                        option.value = className;
+                        option.textContent = className;
+                        classSelectElement.appendChild(option);
+                    });
+                    console.log("DEBUG: Finished adding options.");
+
+                    // Initialize SlimSelect for class selection
+                    try {
+                        if (classSelectSlim) {
+                            console.log("DEBUG: Destroying previous class SlimSelect instance.");
+                            classSelectSlim.destroy();
+                            classSelectSlim = null;
+                        }
+                        console.log("DEBUG: Preparing to initialize class SlimSelect...");
+                        const targetElement = document.getElementById('class-select');
+                        if (!targetElement) { throw new Error("Target element #class-select not found immediately before init!"); }
+                        console.log("DEBUG: Target element found. Initializing class SlimSelect...");
+
+                        classSelectSlim = new SlimSelect({
+                            select: '#class-select',
+                            placeholder: 'Click to select classes...',
+                            onChange: (info) => {
+                                console.log("DEBUG: Class SlimSelect onChange triggered.");
+                                confirmClassesBtn.disabled = info.length === 0;
+                            }
+                        });
+                        console.log("DEBUG: new class SlimSelect() statement finished.");
+
+                        if (classSelectSlim && typeof classSelectSlim.selected === 'function') {
+                             console.log("DEBUG: classSelectSlim object exists and has .selected(). Type:", typeof classSelectSlim);
+                             confirmClassesBtn.disabled = classSelectSlim.selected().length === 0;
+                             console.log("DEBUG: Successfully set initial confirm button state using selected().");
+                         } else {
+                             console.error("DEBUG: classSelectSlim.selected() method IS NOT a function or object is invalid!");
+                             console.log("DEBUG: classSelectSlim object value:", classSelectSlim);
+                             confirmClassesBtn.disabled = true; // Fallback
+                         }
+                    } catch (e) {
+                        console.error("DEBUG: Error during class SlimSelect init or aftermath:", e);
+                        document.getElementById('class-selection-section').innerHTML += "<p style='color:red;'>Error initializing class dropdown UI. Please check console.</p>";
+                        confirmClassesBtn.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error("DEBUG: Error fetching available classes:", error);
+                    classSelectionSection.innerHTML = `<p style='color:red;'>Error fetching classes: ${error.message}. Using defaults.</p>`;
+                     // Proceed with default classes if fetch fails
+                    populateClassSelectorWithDefaults(['person', 'tv', 'laptop']);
+                });
+
+        } // End of populateClassSelector
+
+        // Helper function to populate with defaults if fetch fails
+        function populateClassSelectorWithDefaults(defaultClasses){
+             if (!classSelectElement) { console.error("DEBUG: populateClassSelectorWithDefaults - Cannot find classSelectElement!"); return; }
+             classSelectElement.innerHTML = '';
+             defaultClasses.forEach(className => {
+                const option = document.createElement('option');
+                option.value = className; option.textContent = className;
+                classSelectElement.appendChild(option);
+             });
+            // Initialize SlimSelect (duplicate code, could be refactored)
+            try {
+                 if (classSelectSlim) { classSelectSlim.destroy(); classSelectSlim = null; }
+                 classSelectSlim = new SlimSelect({ /* ... same options as above ... */
+                     select: '#class-select',
+                     placeholder: 'Click to select classes...',
+                     onChange: (info) => { confirmClassesBtn.disabled = info.length === 0; }
+                 });
+                 if (classSelectSlim && typeof classSelectSlim.selected === 'function') {
+                    confirmClassesBtn.disabled = classSelectSlim.selected().length === 0;
+                 } else { confirmClassesBtn.disabled = true; }
+             } catch (e) {
+                 console.error("DEBUG: Error initializing class SlimSelect (default):", e);
+                 confirmClassesBtn.disabled = true;
+             }
+        }
+
+
+        // --- Event Listeners and Handlers ---
+        confirmClassesBtn.addEventListener('click', handleConfirmClasses);
+
+        function handleConfirmClasses() {
+            if (!classSelectSlim || typeof classSelectSlim.selected !== 'function') {
+                statusElement.textContent = "Error: Class selector not initialized or invalid.";
+                console.error("handleConfirmClasses called but classSelectSlim is not valid or missing .selected().");
+                return;
+            }
+            selectedClassesToDetect = classSelectSlim.selected();
+
+            if (selectedClassesToDetect.length === 0) {
+                statusElement.textContent = "Please select at least one class before proceeding.";
+                return;
+            }
+            console.log("Classes selected for detection:", selectedClassesToDetect);
+
+            // Hide class selection, show controls
+            classSelectionSection.classList.add('hidden');
+            controlsSection.classList.remove('hidden');
+
+            statusElement.textContent = `Ready to scan for: ${selectedClassesToDetect.join(', ')} using '${selectedPath}' path. Press Start Scan.`;
+        }
+
+        startBtn.addEventListener('click', handleStartScan);
+        stopBtn.addEventListener('click', handleStopScan);
+
+        // --- Async Handlers for Start/Stop ---
+        async function handleStartScan() {
+            if (selectedClassesToDetect.length === 0 || !selectedPath) {
+                 statusElement.textContent = "Error: Path or Classes not selected.";
+                 console.error("DEBUG: Start scan attempted without path or classes.");
+                 return;
+            }
+            statusElement.textContent = "Attempting to start scan...";
+            startBtn.disabled = true; stopBtn.disabled = true;
+            comparisonSection.classList.add('hidden'); videoContainer.classList.add('hidden'); videoElement.src = "";
+            try {
+                const response = await fetch('/start_stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', },
+                    // Send selected path along with classes
+                    body: JSON.stringify({
+                        selected_classes: selectedClassesToDetect,
+                        selected_path: selectedPath // Include the path
+                    })
+                });
+                if (!response.ok) { throw new Error(`Start Scan Error: ${response.status}`); }
+                const result = await response.json();
+                if (result.status === 'started') {
+                    statusElement.textContent = `Scan running (Path: ${selectedPath})... Detecting: ${selectedClassesToDetect.join(', ')}`;
+                    videoElement.src = "{{ url_for('video_feed') }}?" + new Date().getTime(); // Add timestamp to prevent caching
+                    videoContainer.classList.remove('hidden');
+                    startBtn.classList.add('hidden'); stopBtn.classList.remove('hidden'); stopBtn.disabled = false;
+                    comparisonResultElement.innerHTML = ""; csvDataElement.innerHTML = "<p>Scan in progress...</p>";
+                } else { throw new Error(result.message || 'Failed to start stream.'); }
+            } catch (error) {
+                console.error("Error starting scan:", error);
+                statusElement.textContent = `Error starting scan: ${error.message}`;
+                startBtn.disabled = false; stopBtn.disabled = true; stopBtn.classList.add('hidden'); startBtn.classList.remove('hidden');
+            }
+        }
+
+        async function handleStopScan() {
+            console.log("DEBUG: handleStopScan called.");
+            statusElement.textContent = "Stopping scan...";
+            stopBtn.disabled = true;
+            startBtn.disabled = true; // Keep start disabled until stop is confirmed
+
+            try {
+                console.log("DEBUG: Fetching /stop_stream...");
+                const response = await fetch('/stop_stream', { method: 'POST' });
+                console.log("DEBUG: /stop_stream response status:", response.status);
+                 if (!response.ok) { throw new Error(`Stop error: ${response.status}`); }
+                const result = await response.json();
+                console.log("DEBUG: /stop_stream response data:", result);
+
+                if (result.status === 'stopped' || result.status === 'already_stopped') {
+                    console.log("DEBUG: Stop confirmed by backend.");
+                    statusElement.textContent = "Scan stopped. Loading final results...";
+                    videoElement.src = ""; videoContainer.classList.add('hidden');
+                    stopBtn.classList.add('hidden'); startBtn.classList.remove('hidden'); startBtn.disabled = false; // Re-enable start
+
+                    console.log("DEBUG: Calling loadFinalDataAndSetupComparison...");
+                    await loadFinalDataAndSetupComparison(); // Load data after confirming stop
+                    console.log("DEBUG: loadFinalDataAndSetupComparison finished.");
+
+                } else {
+                    console.error("DEBUG: Backend reported stop error:", result.message);
+                    throw new Error(result.message || 'Stop error.');
+                }
+            } catch (error) {
+                 console.error("DEBUG: Error in handleStopScan catch block:", error);
+                 statusElement.textContent = `Error stopping scan: ${error.message}. Attempting to load results anyway...`;
+                 console.log("DEBUG: Attempting recovery load...");
+                 await loadFinalDataAndSetupComparison(); // Try loading data even if stop failed
+                 console.log("DEBUG: Recovery load finished.");
+                 // Ensure UI reset even on error
+                 videoContainer.classList.add('hidden'); stopBtn.classList.add('hidden');
+                 startBtn.classList.remove('hidden'); startBtn.disabled = false; // Re-enable start button
+            }
+             console.log("DEBUG: handleStopScan finished.");
+        }
+
+        async function loadFinalDataAndSetupComparison() {
+            console.log("DEBUG: loadFinalDataAndSetupComparison called.");
+            statusElement.textContent = "Loading final detection data...";
+            compareBtn.disabled = true; // Disable compare button while loading
+            comparisonSection.classList.add('hidden'); // Hide comparison section initially
+            csvDataElement.innerHTML = "<p>Loading...</p>"; // Show loading message
+            comparisonResultElement.innerHTML = ""; // Clear previous results
+
+            try {
+                console.log("DEBUG: Fetching /get_detection_summary...");
+                const response = await fetch("/get_detection_summary");
+                console.log("DEBUG: /get_detection_summary response status:", response.status);
+                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                console.log("DEBUG: /get_detection_summary response data:", data);
+                if (data.error) throw new Error(`Server error: ${data.error}`);
+
+                processedData = data; // Store the fetched data {item: count, ...}
+                console.log("DEBUG: Data processed:", JSON.stringify(processedData));
+
+                displayCSVData(); // Display the final counts
+                console.log("DEBUG: displayCSVData finished.");
+
+                populateComparisonItemSelect(); // Populate the comparison dropdown
+                console.log("DEBUG: populateComparisonItemSelect finished.");
+
+                comparisonSection.classList.remove('hidden'); // Show the comparison section
+                console.log("DEBUG: Comparison section shown.");
+
+                statusElement.textContent = "Scan complete. Ready for comparison.";
+                // Enable compare button only if there's data AND items are selected in dropdown
+                compareBtn.disabled = Object.keys(processedData).length === 0;
+                // Additional check might be needed based on comparisonSelectSlim selection later
+
+            } catch (error) {
+                 console.error("DEBUG: Error in loadFinalDataAndSetupComparison catch block:", error);
+                 statusElement.textContent = `Error loading final results: ${error.message}`;
+                 csvDataElement.innerHTML = "<p>Error loading final results.</p>";
+                 comparisonSection.classList.add('hidden'); // Keep hidden on error
+                 console.log("DEBUG: Hiding comparison section due to error.");
+            }
+            console.log("DEBUG: loadFinalDataAndSetupComparison finished execution.");
+        }
+
+        function populateComparisonItemSelect() {
+            console.log("DEBUG: populateComparisonItemSelect called. processedData:", JSON.stringify(processedData));
+            if (comparisonSelectSlim) {
+                try {
+                    console.log("DEBUG: Destroying previous comparison SlimSelect instance.");
+                    comparisonSelectSlim.destroy();
+                    comparisonSelectSlim = null;
+                } catch (e) { console.warn("DEBUG: Error destroying comparison SlimSelect", e); }
+            }
+
+            if (!itemSelectElement) { console.error("DEBUG: populateComparisonItemSelect - ERROR: itemSelectElement (select#item-select) is null!"); return; }
+
+            itemSelectElement.innerHTML = ""; // Clear comparison dropdown
+            const detectedItems = Object.keys(processedData).sort();
+            console.log("DEBUG: populateComparisonItemSelect - detectedItems:", detectedItems);
+
+            if (detectedItems.length === 0) {
+                itemSelectElement.innerHTML = '<option value="" disabled>No items detected.</option>';
+                quantityInputsElement.innerHTML = "<p>Nothing detected to compare.</p>";
+                compareBtn.disabled = true; // Disable compare if nothing detected
+                console.log("DEBUG: populateComparisonItemSelect - No detected items found.");
+            } else {
+                detectedItems.forEach(item => {
+                    console.log(`DEBUG: populateComparisonItemSelect - Adding option: ${item}`);
+                    const option = document.createElement("option");
+                    option.value = item; option.textContent = item;
+                    itemSelectElement.appendChild(option);
+                });
+                quantityInputsElement.innerHTML = "<p>Select items above to set expected quantities.</p>";
+                compareBtn.disabled = false; // Enable compare button if items were detected
+                console.log("DEBUG: populateComparisonItemSelect - Finished adding options. Current innerHTML:", itemSelectElement.innerHTML);
+            }
+
+            // Initialize SlimSelect for the comparison dropdown
+            try {
+                console.log("DEBUG: populateComparisonItemSelect - Initializing SlimSelect for #item-select...");
+                comparisonSelectSlim = new SlimSelect({
+                    select: "#item-select",
+                    placeholder: "Select detected items to compare",
+                    allowDeselect: true,
+                     // Add onChange to manage quantity inputs dynamically
+                     onChange: handleComparisonSelectChange // Use the existing handler
+                });
+                console.log("DEBUG: populateComparisonItemSelect - SlimSelect initialized. Value:", comparisonSelectSlim);
+
+                 // Initial call to setup quantity inputs based on default (likely empty) selection
+                 createQuantityInputs();
+
+            } catch(e) {
+                 console.error("DEBUG: populateComparisonItemSelect - Failed to init comparison SlimSelect:", e);
+                 itemSelectElement.innerHTML = '<option value="" disabled>Error initializing selector</option>';
+                 compareBtn.disabled = true; // Disable compare on error
+            }
+            console.log("DEBUG: populateComparisonItemSelect finished.");
+        }
+
+        function handleComparisonSelectChange() {
+            console.log("DEBUG: handleComparisonSelectChange called.");
+            createQuantityInputs();
+            comparisonResultElement.innerHTML = ""; // Clear comparison on selection change
+            // Maybe disable compare button if nothing is selected in comparison dropdown?
+            if (comparisonSelectSlim && typeof comparisonSelectSlim.selected === 'function') {
+                 compareBtn.disabled = comparisonSelectSlim.selected().length === 0;
+            } else {
+                 compareBtn.disabled = true; // Disable if selector is broken
+            }
+            console.log("DEBUG: handleComparisonSelectChange finished.");
+        }
+
+        function createQuantityInputs() {
+            console.log("DEBUG: createQuantityInputs called.");
+
+            if (!comparisonSelectSlim || typeof comparisonSelectSlim.selected !== 'function') {
+                console.error("DEBUG: createQuantityInputs - ERROR: comparisonSelectSlim not ready or .selected method missing.");
+                quantityInputsElement.innerHTML = "<p>Error: Selector not ready for quantity inputs.</p>";
+                return;
+            }
+
+            const selectedItems = comparisonSelectSlim.selected();
+            console.log("DEBUG: createQuantityInputs - selected items array:", selectedItems);
+
+            quantityInputsElement.innerHTML = ""; // Clear previous inputs
+
+            if (selectedItems && selectedItems.length > 0) {
+                console.log("DEBUG: createQuantityInputs - Creating inputs for selected items...");
+                selectedItems.forEach(item => {
+                    const safeItemId = item.replace(/[^a-zA-Z0-9_-]/g, '_');
+                    const inputId = `quantity-${safeItemId}`;
+                    const label = document.createElement("label");
+                    label.htmlFor = inputId;
+                    label.textContent = `${item} expected:`;
+                    const input = document.createElement("input");
+                    input.type = "number"; input.min = "0"; input.value = "0";
+                    input.id = inputId; input.name = inputId;
+                    console.log(`DEBUG: createQuantityInputs - Appending label and input for ${item} (ID: ${inputId})`);
+                    quantityInputsElement.appendChild(label);
+                    quantityInputsElement.appendChild(input);
+                    quantityInputsElement.appendChild(document.createElement("br"));
+                });
+                compareBtn.disabled = false; // Enable compare button since items are selected
+            } else {
+                console.log("DEBUG: createQuantityInputs - No items currently selected.");
+                quantityInputsElement.innerHTML = "<p>Select items above to set expected quantities.</p>";
+                compareBtn.disabled = true; // Disable compare button if no items are selected
+            }
+            console.log("DEBUG: createQuantityInputs finished. Final quantityInputs innerHTML:", quantityInputsElement.innerHTML);
+        }
+
+        function displayCSVData() {
+            console.log("DEBUG: displayCSVData called. processedData:", JSON.stringify(processedData));
+            if (!csvDataElement) { console.error("DEBUG: displayCSVData - ERROR: csvDataElement is null!"); return; }
+
+            csvDataElement.innerHTML = ""; // Clear previous data
+            const items = Object.entries(processedData);
+            console.log("DEBUG: displayCSVData items array:", items);
+
+            if (items.length === 0) {
+                csvDataElement.innerHTML = "<p>No items matching the filter were detected during the scan.</p>";
+                console.log("DEBUG: displayCSVData - No items found in processedData.");
+                return;
+            }
+
+            items.sort((a, b) => a[0].localeCompare(b[0]))
+                .forEach(([item, quantity]) => {
+                    console.log(`DEBUG: displayCSVData - Creating <p> for: ${item}, quantity: ${quantity}`);
+                    const p = document.createElement("p");
+                    p.textContent = `${item}: ${quantity}`;
+                    csvDataElement.appendChild(p);
+                });
+
+            console.log("DEBUG: displayCSVData finished appending. Final innerHTML:", csvDataElement.innerHTML);
+        }
+
+        // --- Comparison Logic --- (No changes needed in compareData itself, relies on comparisonSelectSlim)
+        function compareData() {
+            console.log("DEBUG: compareData called.");
+
+            if (!comparisonSelectSlim || typeof comparisonSelectSlim.selected !== 'function') {
+                comparisonResultElement.innerHTML = "<p class='missing'>Error: Comparison selector not ready.</p>";
+                console.error("DEBUG: compareData - ERROR: comparisonSelectSlim not ready or .selected missing.");
+                return;
+            }
+
+            comparisonResultElement.innerHTML = "<h3>Comparison Result:</h3>";
+            const selectedItems = comparisonSelectSlim.selected();
+            console.log("DEBUG: compareData - Selected items array for comparison:", selectedItems);
+
+            if (!selectedItems || selectedItems.length === 0) {
+                comparisonResultElement.innerHTML += "<p class='missing'>No items selected for comparison.</p>";
+                console.log("DEBUG: compareData - No items selected in the comparison dropdown.");
+                return;
+            }
+
+            let correctMatchesHtml = "";
+            let mismatchedHtml = "";
+            let missingHtml = "";
+
+            selectedItems.forEach(item => {
+                const safeItemId = item.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const inputId = `quantity-${safeItemId}`;
+                console.log(`DEBUG: compareData - Processing item: '${item}', Looking for input ID: '${inputId}'`);
+
+                const quantityInput = document.getElementById(inputId);
+
+                if (!quantityInput) {
+                    console.error(`DEBUG: compareData - ERROR: Could not find input element with ID: '${inputId}' for item: '${item}'`);
+                    mismatchedHtml += `<li>${item}: Error finding input field!</li>`;
+                    return; // Skip this item
+                }
+                console.log(`DEBUG: compareData - Found input element for ${item}:`, quantityInput);
+
+                const userValStr = quantityInput.value;
+                const userVal = parseInt(userValStr, 10);
+                console.log(`DEBUG: compareData - User value string for '${item}': '${userValStr}', Parsed user value: ${userVal}`);
+
+                if (isNaN(userVal) || userVal < 0) {
+                    console.warn(`DEBUG: compareData - Invalid input for '${item}': '${userValStr}' resulted in NaN or negative.`);
+                    mismatchedHtml += `<li>${item}: Invalid input value ('${userValStr || 'empty'}')</li>`;
+                    return; // Skip this item
+                }
+
+                const actualVal = processedData[item] || 0;
+                console.log(`DEBUG: compareData - Actual detected value for ${item}: ${actualVal} (from processedData: ${JSON.stringify(processedData)})`);
+
+                if (userVal === actualVal) {
+                    correctMatchesHtml += `<li>${item}: Expected ${userVal}, Detected ${actualVal} (Correct)</li>`;
+                } else if (actualVal === 0 && userVal > 0) {
+                    missingHtml += `<li>${item}: Expected ${userVal}, Detected 0</li>`;
+                } else {
+                    mismatchedHtml += `<li>${item}: Expected ${userVal}, Detected ${actualVal}</li>`;
+                }
+            });
+
+            console.log("DEBUG: compareData - Finished iterating selected items.");
+            console.log("DEBUG: compareData - Built HTML strings:\n  Correct: " + correctMatchesHtml + "\n  Mismatch: " + mismatchedHtml + "\n  Missing: " + missingHtml);
+
+            if (correctMatchesHtml) {
+                comparisonResultElement.innerHTML += `<p class="correct">✅ Correct Matches:</p><ul>${correctMatchesHtml}</ul>`;
+            }
+            if (mismatchedHtml) {
+                comparisonResultElement.innerHTML += `<p class="mismatch">⚠️ Mismatches / Input Errors:</p><ul>${mismatchedHtml}</ul>`;
+            }
+            if (missingHtml) {
+                comparisonResultElement.innerHTML += `<p class="missing">❌ Missing Items (Expected but not detected):</p><ul>${missingHtml}</ul>`;
+            }
+            if (comparisonResultElement.innerHTML === "<h3>Comparison Result:</h3>" && selectedItems.length > 0) {
+                comparisonResultElement.innerHTML += "<p>Comparison complete. No specific results to show (check for input errors above if any).</p>";
+            }
+            console.log("DEBUG: compareData finished. Final comparisonResult innerHTML:", comparisonResultElement.innerHTML);
+        }
+
+    </script>
+</body>
+</html>
