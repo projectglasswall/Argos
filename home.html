@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/slim-select/1.27.1/slimselect.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('imgs/fifthphoto.jpg');
+            background-repeat: no-repeat;
+            background-size: cover; /* Make the image cover the entire background */
+            background-attachment: fixed; /* Keep the background fixed during scrolling */
+            color: #ffffff;
+            
+        }
+        header {
+            text-align: center;
+            padding: 10px;
+        }
+        .header-image {
+            width: auto;
+            height: 300px; /* Increased height for a larger image */
+        }
+
+        .navbar {
+            width: 100%; /* Full-width navbar */
+            background-color: #000000;
+            display: flex;
+            justify-content: center; /* Aligns items in the center */
+            padding: 20px 0;
+        }
+
+        .navbar a {
+            text-decoration: none;
+            color: #85fff5;
+            padding: 10px 20px; /* Adjust padding for better spacing */
+            text-align: center;
+        }
+
+        .navbar a:hover {
+            background-color: #9c5bd6;
+            color: #ffffff; /* Change text color for better visibility */
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 800px;
+            border: 2px solid black;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .column {
+            width: 48%;
+        }
+
+        select,
+        button,
+        input {
+            margin: 10px 0;
+        }
+
+        #comparisonResult p {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #222;
+            border-radius: 5px;
+        }
+
+        #comparisonResult p:nth-child(even) {
+            background-color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="navbar">
+        <a href="./MeetTheTeam.html" target="_self">Meet The Team</a>
+        <a href="./aboutargos.html" target="_self">About Argos</a>
+        <a href="./liveinaction.html" target="_self">Live In Action </a>
+        <a href="./behindthescenes.html" target="_self">Behind The Scenes </a>
+       
+    </div>
+
+    <header>
+        <img src="imgs/tellotaskcomparison.png" alt="Tello Task Comparison Header" class="header-image">
+    </header>
+
+
+    <div class="content">
+        <img src="{{ url_for('video_feed') }}" width="1000px" />
+
+        <div class="container">
+            <div class="column">
+                <h2>Task Comparison</h2>
+                <label for="item-select">Choose items:</label>
+                <select id="item-select" name="item" multiple></select>
+                <div id="quantity-inputs"></div>
+                <button onclick="compareData()">Compare</button>
+                <div id="comparisonResult"></div>
+            </div>
+
+            <div class="column">
+                <h2>CSV Data</h2>
+                <div id="csvData"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/slim-select/1.27.1/slimselect.min.js"></script>
+    <script>
+        const csvRawData = `Timestamp\tClass\tConfidence\tX1\tY1\tX2\tY2
+2025-02-27 16:08:02\tperson\t0.9624367952\t122\t177\t574\t479
+2025-02-27 16:08:04\tperson\t0.9633241892\t89\t172\t573\t479
+2025-02-27 16:08:04\tcell phone\t0.9043473005\t141\t236\t232\t406
+2025-02-27 16:08:06\tperson\t0.951475203\t121\t173\t568\t479
+2025-02-27 16:08:08\tperson\t0.9613291621\t127\t175\t620\t479
+2025-02-27 16:08:08\tbottle\t0.414542228\t405\t189\t498\t385
+2025-02-27 16:08:10\tperson\t0.9605191946\t123\t175\t578\t479
+2025-02-27 16:08:12\tperson\t0.9514822364\t108\t174\t566\t479
+2025-02-27 16:08:12\tcell phone\t0.5582945943\t152\t243\t223\t360
+2025-02-27 16:08:12\tremote\t0.3231981099\t152\t243\t223\t360
+2025-02-27 16:08:14\tperson\t0.9493926167\t121\t173\t566\t479
+2025-02-27 16:08:14\tcell phone\t0.5941339135\t182\t236\t240\t299
+2025-02-27 16:08:16\tperson\t0.9544785023\t106\t173\t566\t479
+2025-02-27 16:08:19\tperson\t0.9625621438\t125\t175\t568\t479`;
+
+        let processedData = {};
+        let slimSelect;
+
+        function processCSVData(csvData) {
+            const lines = csvData.split('\n');
+            const data = {};
+            lines.slice(1).forEach(line => {
+                const [, item] = line.split('\t');
+                data[item] = (data[item] || 0) + 1;
+            });
+            return data;
+        }
+
+        function populateItemSelect() {
+            const itemSelect = document.getElementById('item-select');
+            itemSelect.innerHTML = '';
+            Object.keys(processedData).forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                option.textContent = item;
+                itemSelect.appendChild(option);
+            });
+            slimSelect = new SlimSelect({
+                select: '#item-select',
+                placeholder: 'Select items'
+            });
+
+            itemSelect.addEventListener('slimselect:selected', createQuantityInputs);
+            itemSelect.addEventListener('slimselect:deselected', createQuantityInputs);
+        }
+
+
+        function createQuantityInputs() {
+            const selectedItems = slimSelect.selected();
+            const quantityInputs = document.getElementById('quantity-inputs');
+            quantityInputs.innerHTML = '';
+
+            selectedItems.forEach(item => {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '0';
+                input.value = '0';
+                input.id = `quantity-${item}`;
+                input.addEventListener('input', function () {
+                    if (this.value < 0) this.value = 0;
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = input.id;
+                label.textContent = `${item} quantity:`;
+
+                quantityInputs.appendChild(label);
+                quantityInputs.appendChild(input);
+                quantityInputs.appendChild(document.createElement('br'));
+            });
+        }
+
+        function displayCSVData() {
+            const csvDataElement = document.getElementById("csvData");
+            csvDataElement.innerHTML = "";
+            Object.entries(processedData).forEach(([item, quantity]) => {
+                csvDataElement.innerHTML += `<p>${item}: ${quantity}</p>`;
+            });
+        }
+
+        function compareData() {
+            const comparisonResult = document.getElementById("comparisonResult");
+            comparisonResult.innerHTML = "<h3>Comparison Result:</h3>";
+
+            const selectedItems = slimSelect.selected();
+            let missingItems = {};
+            let mismatchedItems = {};
+            let correctMatches = [];
+
+            selectedItems.forEach(item => {
+                const quantity = parseInt(document.getElementById(`quantity-${item}`).value);
+                const actualQuantity = processedData[item] || 0;
+
+                if (quantity === actualQuantity) {
+                    correctMatches.push(`${item} - ${quantity}`);
+                } else {
+                    mismatchedItems[item] = {
+                        userQuantity: quantity,
+                        actualQuantity: actualQuantity
+                    };
+                }
+            });
+
+            // Check for items selected by the user that are not in the processed data
+            selectedItems.forEach(item => {
+                if (!processedData.hasOwnProperty(item)) {
+                    missingItems[item] = parseInt(document.getElementById(`quantity-${item}`).value);
+                }
+            });
+
+            if (Object.keys(missingItems).length === 0 &&
+                Object.keys(mismatchedItems).length === 0) {
+                if (correctMatches.length > 0) {
+                    comparisonResult.innerHTML += `<p>Correct matches: ${correctMatches.join(", ")}</p>`;
+                } else {
+                    comparisonResult.innerHTML += "<p>All quantities match perfectly.</p>";
+                }
+            } else {
+                comparisonResult.innerHTML += "<p>Error - Quantity mismatch detected.</p>";
+
+                if (Object.keys(missingItems).length > 0) {
+                    comparisonResult.innerHTML += `<p>Missing items (${Object.keys(missingItems).length}):</p>`;
+                    for (const item in missingItems) {
+                        comparisonResult.innerHTML += `<p>  - ${item}: User input ${missingItems[item]}, Actual count: 0</p>`;
+                    }
+                }
+
+                if (Object.keys(mismatchedItems).length > 0) {
+                    comparisonResult.innerHTML += "<p>Mismatched quantities:</p>";
+                    for (const item in mismatchedItems) {
+                        comparisonResult.innerHTML += `<p>  - ${item}: User input ${mismatchedItems[item].userQuantity}, Actual count: ${mismatchedItems[item].actualQuantity}</p>`;
+                    }
+                }
+            }
+            // Generate concise summary
+            let summary = "";
+            for (const item in processedData) {
+                summary += `${item}: ${processedData[item]}, `;
+            }
+            if (summary.endsWith(", ")) {
+                summary = summary.slice(0, -2); // Remove trailing comma and space
+            }
+
+            // Display summary
+            const csvDataElement = document.getElementById("csvData");
+            csvDataElement.innerHTML = ""; // Clear existing content
+            displayCSVData(); // redisplay the table.
+            csvDataElement.innerHTML += `<p>Summary: ${summary}</p>`;
+        }
+
+        processedData = processCSVData(csvRawData);
+        populateItemSelect();
+        displayCSVData();
+        createQuantityInputs();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Centered Oval Green Button</title>
+  <style>
+    body {
+      font-family: Monaco, monospace;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-image: url('imgs/HomePage.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin-bottom: 20px; /* Ensures space between image and button */
+    }
+
+    button {
+      background-color: #000000;
+      color: white;
+      border: none;
+      padding: 20px 40px;
+      font-size: 16px;
+      border-radius: 50px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <img src="{ url_for('static', filename='imgs/ARGOS.png') }" alt="Argos Text" />
+  <a href="./home.html" target="_blank">
+    <button>Launch Your Journey Here</button>
+  </a>
+</body>
+</html>
